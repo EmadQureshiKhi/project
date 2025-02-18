@@ -2,95 +2,74 @@ const axios = require('axios');
 
 class BinanceProvider {
   constructor() {
-    this.baseUrl = 'https://api.binance.com/api/v3';
-    this.fallbackUrl = 'https://api-testnet.binance.vision/api/v3'; // Fallback URL
+    // Use the main Binance API URL
+    this.baseUrl = 'https://api.binance.com';
     this.client = axios.create({
-      timeout: 10000,
+      baseURL: this.baseUrl,
+      timeout: 30000,
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0' // Add user agent to prevent some blocks
+      },
+      validateStatus: status => status < 500 // Handle only 5xx errors as failures
     });
   }
 
   async getOHLCV(symbol, interval = '1h', limit = 24) {
     try {
-      // Try main API first
-      const response = await this.client.get(`${this.baseUrl}/klines`, {
+      console.log(`Fetching OHLCV data for ${symbol}USDT from Binance...`);
+      const response = await this.client.get('/api/v3/klines', {
         params: {
-          symbol: symbol.toUpperCase() + 'USDT',
+          symbol: `${symbol.toUpperCase()}USDT`,
           interval,
           limit
         }
       });
+
+      if (response.status === 451) {
+        throw new Error('Geographic restrictions - try using a different region');
+      }
+
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error('Invalid response from Binance');
+      }
+
       return response.data;
     } catch (error) {
-      console.log('Primary Binance API failed, trying fallback...');
-      try {
-        // Try fallback API
-        const fallbackResponse = await this.client.get(`${this.fallbackUrl}/klines`, {
-          params: {
-            symbol: symbol.toUpperCase() + 'USDT',
-            interval,
-            limit
-          }
-        });
-        return fallbackResponse.data;
-      } catch (fallbackError) {
-        // If both fail, try alternative data source
-        try {
-          const priceResponse = await this.client.get(`${this.baseUrl}/ticker/price`, {
-            params: {
-              symbol: symbol.toUpperCase() + 'USDT'
-            }
-          });
-          
-          // Create a basic OHLCV structure with current price
-          const price = parseFloat(priceResponse.data.price);
-          const timestamp = Date.now();
-          
-          // Return simplified data structure
-          return [{
-            openTime: timestamp,
-            open: price,
-            high: price,
-            low: price,
-            close: price,
-            volume: 0,
-            closeTime: timestamp,
-            quoteAssetVolume: 0,
-            trades: 0,
-            takerBuyBaseAssetVolume: 0,
-            takerBuyQuoteAssetVolume: 0
-          }];
-        } catch (finalError) {
-          console.error('All Binance API attempts failed:', finalError);
-          throw new Error(`Price API error: ${finalError.response?.status || finalError.message}`);
-        }
-      }
+      console.error('Binance OHLCV error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw new Error(`Binance OHLCV API error: ${error.message}`);
     }
   }
 
   async getPrice(symbol) {
     try {
-      const response = await this.client.get(`${this.baseUrl}/ticker/price`, {
+      console.log(`Fetching price for ${symbol}USDT from Binance...`);
+      const response = await this.client.get('/api/v3/ticker/price', {
         params: {
-          symbol: symbol.toUpperCase() + 'USDT'
+          symbol: `${symbol.toUpperCase()}USDT`
         }
       });
+
+      if (response.status === 451) {
+        throw new Error('Geographic restrictions - try using a different region');
+      }
+
+      if (!response.data || !response.data.price) {
+        throw new Error('Invalid price data from Binance');
+      }
+
       return parseFloat(response.data.price);
     } catch (error) {
-      try {
-        // Try fallback
-        const fallbackResponse = await this.client.get(`${this.fallbackUrl}/ticker/price`, {
-          params: {
-            symbol: symbol.toUpperCase() + 'USDT'
-          }
-        });
-        return parseFloat(fallbackResponse.data.price);
-      } catch (fallbackError) {
-        console.error('Failed to fetch price from Binance:', fallbackError);
-        throw new Error(`Price API error: ${fallbackError.response?.status || fallbackError.message}`);
-      }
+      console.error('Binance price error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw new Error(`Binance price API error: ${error.message}`);
     }
   }
 }

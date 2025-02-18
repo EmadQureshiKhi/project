@@ -6,10 +6,6 @@
       "use": "@vercel/node"
     },
     {
-      "src": "fridon/**",
-      "use": "@vercel/node"
-    },
-    {
       "src": "public/**",
       "use": "@vercel/static"
     }
@@ -18,11 +14,12 @@
     {
       "src": "/api/chat",
       "methods": ["POST"],
-      "dest": "server.js"
-    },
-    {
-      "src": "/api/analyze/(.*)",
-      "dest": "server.js"
+      "dest": "server.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
       "src": "/home",

@@ -1,66 +1,79 @@
 const BinanceProvider = require('../../analytics/providers/binance');
 const BirdeyeProvider = require('../../analytics/providers/birdeye');
+const { calculateIndicators } = require('../../analytics/indicators/ta');
+const EmperorAnalysis = require('../../analytics/indicators/emperor');
 
 class AnalyticsService {
-  async analyze(symbol, interval = '1h') {
-    try {
-      console.log(`Starting comprehensive analysis for ${symbol}...`);
-      
-      let priceData;
-      try {
-        console.log(`Fetching price data for ${symbol}USDT...`);
-        priceData = await BinanceProvider.getPrice(symbol);
-      } catch (binanceError) {
-        console.log('Binance API failed, trying Birdeye...');
-        priceData = await BirdeyeProvider.getPrice(symbol);
-      }
+    static async analyze(coin, interval = '1h') {
+        try {
+            console.log(`Starting comprehensive analysis for ${coin}...`);
+            
+            // Get both current price and OHLCV data
+            const data = await BinanceProvider.getOHLCV(coin, interval);
+            console.log('Received data from Binance:', {
+                price: data.currentPrice,
+                timestamp: new Date(data.timestamp).toISOString(),
+                ohlcvLength: data.ohlcv?.length
+            });
+            
+            if (!data.currentPrice || !data.ohlcv || data.ohlcv.length === 0) {
+                throw new Error('Invalid or missing price/OHLCV data');
+            }
 
-      if (!priceData) {
-        throw new Error('Unable to fetch price data from any source');
-      }
+            // Comprehensive analysis response
+            const response = {
+                price: data.currentPrice,
+                timestamp: data.timestamp,
+                ohlcv: data.ohlcv,
+                indicators: calculateIndicators(data.ohlcv)
+            };
 
-      // Basic analysis structure if detailed data isn't available
-      return {
-        price: priceData,
-        timestamp: Date.now(),
-        indicators: {
-          rsi: 50, // neutral value
-          macd: {
-            macd: 0,
-            signal: 0,
-            histogram: 0
-          }
-        },
-        riskAnalysis: {
-          volatility: 0,
-          volumeTrend: 0,
-          momentum: 0,
-          riskScore: 50
-        },
-        trendAnalysis: {
-          direction: 'SIDEWAYS',
-          strength: 50,
-          momentum: 0
-        },
-        volumeAnalysis: {
-          volumeTrend: 0,
-          priceVolumeCorrelation: 0,
-          abnormalVolume: false
-        },
-        tradersAnalysis: {
-          whaleMovements: 0,
-          averageWhaleVolume: 0,
-          significantLevels: [
-            { price: priceData * 1.1, type: 'RESISTANCE' },
-            { price: priceData * 0.9, type: 'SUPPORT' }
-          ]
+            try {
+                // Risk Analysis
+                const riskAnalysis = EmperorAnalysis.analyzeRisk(data.ohlcv);
+                console.log('Risk analysis results:', riskAnalysis);
+                response.riskAnalysis = riskAnalysis;
+
+                // Trend Analysis
+                const trendAnalysis = EmperorAnalysis.analyzeTrend(data.ohlcv);
+                console.log('Trend analysis results:', trendAnalysis);
+                response.trendAnalysis = trendAnalysis;
+
+                // Volume Analysis
+                const volumeAnalysis = EmperorAnalysis.analyzeVolume(data.ohlcv);
+                console.log('Volume analysis results:', volumeAnalysis);
+                response.volumeAnalysis = volumeAnalysis;
+
+                // Traders Analysis
+                const tradersAnalysis = EmperorAnalysis.analyzeTraders(data.ohlcv);
+                console.log('Traders analysis results:', tradersAnalysis);
+                response.tradersAnalysis = tradersAnalysis;
+
+            } catch (analysisError) {
+                console.error('Analysis component failed:', analysisError);
+                // Continue with partial analysis if some components fail
+            }
+
+            // Validate the price
+            if (!response.price || isNaN(response.price)) {
+                throw new Error('Invalid price data received');
+            }
+
+            console.log('Comprehensive analysis complete:', {
+                price: response.price,
+                timestamp: new Date(response.timestamp).toISOString(),
+                hasRiskAnalysis: !!response.riskAnalysis,
+                hasTrendAnalysis: !!response.trendAnalysis,
+                hasVolumeAnalysis: !!response.volumeAnalysis,
+                hasTradersAnalysis: !!response.tradersAnalysis
+            });
+
+            return response;
+        } catch (error) {
+            console.error('Analytics error:', error);
+            throw error;
         }
-      };
-    } catch (error) {
-      console.error('Analytics error:', error);
-      throw new Error(`Failed to fetch data for ${symbol}: ${error.message}`);
     }
-  }
 }
 
-module.exports = new AnalyticsService();
+module.exports = AnalyticsService;
