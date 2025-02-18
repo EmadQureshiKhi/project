@@ -437,3 +437,17 @@ app.listen(port, () => {
   console.error('Failed to start server:', error);
   process.exit(1);
 });
+
+// Near the top of server.js, after your requires
+if (process.env.VERCEL) {
+  // Running on Vercel, don't need to listen on a port
+  module.exports = app;
+} else {
+  // Local development
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  }).on('error', (error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
