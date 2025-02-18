@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/vercel.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     },
     {
@@ -13,39 +13,23 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "api/vercel.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/home",
-      "dest": "api/vercel.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/cordai",
-      "dest": "api/vercel.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/cordchain",
-      "dest": "api/vercel.js"
-    },
-    {
-      "src": "/templates",
-      "dest": "api/vercel.js"
-    },
-    {
-      "src": "/agents",
-      "dest": "api/vercel.js"
-    },
-    {
-      "src": "/styles/(.*)",
-      "dest": "public/styles/$1"
-    },
-    {
-      "src": "/cordai/styles/(.*)",
-      "dest": "public/cordai/styles/$1"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "public/$1"
+      "dest": "/public/$1"
     }
   ]
 }
