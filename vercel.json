@@ -6,6 +6,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "fridon/**",
+      "use": "@vercel/node"
+    },
+    {
       "src": "public/**",
       "use": "@vercel/static"
     }
@@ -14,6 +18,10 @@
     {
       "src": "/api/chat",
       "methods": ["POST"],
+      "dest": "server.js"
+    },
+    {
+      "src": "/api/analyze/(.*)",
       "dest": "server.js"
     },
     {
