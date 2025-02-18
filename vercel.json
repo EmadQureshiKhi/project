@@ -12,8 +12,36 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/chat",
       "dest": "server.js"
+    },
+    {
+      "src": "/home",
+      "dest": "server.js"
+    },
+    {
+      "src": "/cordai",
+      "dest": "server.js"
+    },
+    {
+      "src": "/cordchain",
+      "dest": "server.js"
+    },
+    {
+      "src": "/templates",
+      "dest": "server.js"
+    },
+    {
+      "src": "/agents",
+      "dest": "server.js"
+    },
+    {
+      "src": "/styles/(.*)",
+      "dest": "public/styles/$1"
+    },
+    {
+      "src": "/cordai/styles/(.*)",
+      "dest": "public/cordai/styles/$1"
     },
     {
       "src": "/(.*)",
